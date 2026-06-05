@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>背景颜色编辑器</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #eee;
+    padding: 20px;
+    min-height: 100vh;
+}
+.container { max-width: 1400px; margin: 0 auto; }
+h1 { text-align: center; margin-bottom: 25px; background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.content { display: grid; grid-template-columns: 380px 1fr; gap: 25px; }
+@media (max-width: 1000px) { .content { grid-template-columns: 1fr; } }
+
+.controls {
+    background: rgba(30, 41, 59, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+    padding: 24px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+.presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.preset-btn {
+    padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer;
+    font-size: 14px; font-weight: 500; background: rgba(148,163,184,0.15); color: white;
+    transition: all 0.2s;
+}
+.preset-btn:hover { background: linear-gradient(135deg, #3b82f6, #8b5cf6); transform: translateY(-2px); }
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 14px; margin-top: 20px; font-weight: 600; }
+.control-row { margin-bottom: 16px; }
+.control-row label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; color: #cbd5e1; }
+.color-row { display: flex; gap: 10px; align-items: center; }
+input[type="color"] { width: 60px; height: 42px; border: 2px solid rgba(148,163,184,0.25); border-radius: 10px; cursor: pointer; padding: 3px; background: none; }
+.color-value { flex: 1; font-family: monospace; font-size: 12px; background: rgba(15,23,42,0.7); padding: 10px 12px; border-radius: 8px; color: #60a5fa; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: rgba(15,23,42,0.7); -webkit-appearance: none; }
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6); cursor: pointer;
+    box-shadow: 0 2px 10px rgba(59,130,246,0.4);
+}
+.btn-group { display: flex; gap: 12px; margin-top: 24px; }
+button { flex: 1; padding: 14px 20px; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-copy { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; box-shadow: 0 4px 15px rgba(59,130,246,0.4); }
+.btn-copy:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.5); }
+.btn-reset { background: rgba(148,163,184,0.15); color: white; border: 1px solid rgba(148,163,184,0.25); }
+.btn-reset:hover { background: rgba(148,163,184,0.25); }
+
+.preview-section { background: rgba(30,41,59,0.95); border: 1px solid rgba(148,163,184,0.2); border-radius: 16px; padding: 24px; }
+.preview-section h2 { margin-bottom: 18px; color: #f1f5f9; font-size: 18px; }
+#previewCanvas { width: 100%; height: 420px; border-radius: 12px; display: block; margin-bottom: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+.code-section { margin-top: 20px; }
+.code-section h3 { font-size: 14px; color: #94a3b8; margin-bottom: 10px; }
+.code-box {
+    background: rgba(15,23,42,0.9); border: 1px solid rgba(148,163,184,0.2); border-radius: 12px;
+    padding: 18px; font-family: monospace; font-size: 12px; line-height: 1.8; color: #9ca3af; overflow-x: auto;
+}
+.code-box .hl { color: #60a5fa; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🎨 背景编辑器</h1>
+    
+    <div class="content">
+        <div class="controls">
+            <div class="presets">
+                <button class="preset-btn" onclick="applyPreset('default')">默认</button>
+                <button class="preset-btn" onclick="applyPreset('ocean')">海洋</button>
+                <button class="preset-btn" onclick="applyPreset('sunset')">日落</button>
+                <button class="preset-btn" onclick="applyPreset('forest')">森林</button>
+                <button class="preset-btn" onclick="applyPreset('purple')">紫色</button>
+                <button class="preset-btn" onclick="applyPreset('neon')">霓虹</button>
+            </div>
+            
+            <div class="section-title">渐变颜色</div>
+            <div class="control-row">
+                <label>顶部颜色 <span class="hl" id="topColorValue">vec3(0.030, 0.100, 0.170)</span></label>
+                <div class="color-row">
+                    <input type="color" id="topColor" oninput="update()">
+                    <span class="color-value" id="topColorHex">#071a2b</span>
+                </div>
+            </div>
+            <div class="control-row">
+                <label>底部颜色 <span class="hl" id="bottomColorValue">vec3(0.006, 0.016, 0.034)</span></label>
+                <div class="color-row">
+                    <input type="color" id="bottomColor" oninput="update()">
+                    <span class="color-value" id="bottomColorHex">#010409</span>
+                </div>
+            </div>
+            
+            <div class="section-title">光晕 A (左上)</div>
+            <div class="control-row">
+                <label>光晕颜色 <span class="hl" id="glowAColorValue">vec3(0.060, 0.300, 0.460)</span></label>
+                <div class="color-row">
+                    <input type="color" id="glowAColor" oninput="update()">
+                    <span class="color-value" id="glowAColorHex">#0f4d76</span>
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="control-row">
+                    <label>X位置 <span id="glowAXValue">-0.75</span></label>
+                    <input type="range" id="glowAX" min="-1.8" max="1.8" step="0.01" value="-0.75" oninput="update()">
+                </div>
+                <div class="control-row">
+                    <label>Y位置 <span id="glowAYValue">0.55</span></label>
+                    <input type="range" id="glowAY" min="-1.8" max="1.8" step="0.01" value="0.55" oninput="update()">
+                </div>
+            </div>
+            <div class="control-row">
+                <label>扩散强度 <span id="glowASpreadValue">2.3</span></label>
+                <input type="range" id="glowASpread" min="0.3" max="10" step="0.1" value="2.3" oninput="update()">
+            </div>
+            
+            <div class="section-title">光晕 B (右下)</div>
+            <div class="control-row">
+                <label>光晕颜色 <span class="hl" id="glowBColorValue">vec3(0.180, 0.380, 0.280)</span></label>
+                <div class="color-row">
+                    <input type="color" id="glowBColor" oninput="update()">
+                    <span class="color-value" id="glowBColorHex">#2e6147</span>
+                </div>
+            </div>
+            <div class="two-col">
+                <div class="control-row">
+                    <label>X位置 <span id="glowBXValue">0.80</span></label>
+                    <input type="range" id="glowBX" min="-1.8" max="1.8" step="0.01" value="0.8" oninput="update()">
+                </div>
+                <div class="control-row">
+                    <label>Y位置 <span id="glowBYValue">-0.50</span></label>
+                    <input type="range" id="glowBY" min="-1.8" max="1.8" step="0.01" value="-0.5" oninput="update()">
+                </div>
+            </div>
+            <div class="control-row">
+                <label>扩散强度 <span id="glowBSpreadValue">2.0</span></label>
+                <input type="range" id="glowBSpread" min="0.3" max="10" step="0.1" value="2" oninput="update()">
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn-reset" onclick="resetAll()">重置</button>
+                <button class="btn-copy" onclick="copyFullCode()">复制代码</button>
+            </div>
+        </div>
+        
+        <div class="preview-section">
+            <h2>👁️ 实时预览</h2>
+            <canvas id="previewCanvas"></canvas>
+            
+            <div class="code-section">
+                <h3>📝 着色器代码</h3>
+                <div class="code-box" id="codeBox"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let gl, program, buffer, positionLoc, uniforms, startTime;
+
+const state = {
+    topColor: { r: 0.030, g: 0.100, b: 0.170 },
+    bottomColor: { r: 0.006, g: 0.016, b: 0.034 },
+    glowAColor: { r: 0.060, g: 0.300, b: 0.460 },
+    glowBColor: { r: 0.180, g: 0.380, b: 0.280 },
+    centerColor: { r: 0.035, g: 0.050, b: 0.060 },
+    glowAX: -0.75,
+    glowAY: 0.55,
+    glowASpread: 2.3,
+    glowBX: 0.8,
+    glowBY: -0.5,
+    glowBSpread: 2.0,
+    centerWidth: 0.7,
+    centerHeight: 1.1,
+    centerSoftness: 1.35,
+    gamma: 0.92
+};
+
+const presets = {
+    default: { topColor: { r: 0.030, g: 0.100, b: 0.170 }, bottomColor: { r: 0.006, g: 0.016, b: 0.034 }, glowAColor: { r: 0.06, g: 0.30, b: 0.46 }, glowBColor: { r: 0.18, g: 0.38, b: 0.28 }, centerColor: { r: 0.035, g: 0.050, b: 0.060 }, glowAX: -0.75, glowAY: 0.55, glowASpread: 2.3, glowBX: 0.8, glowBY: -0.5, glowBSpread: 2.0, centerWidth: 0.7, centerHeight: 1.1, centerSoftness: 1.35, gamma: 0.92 },
+    ocean: { topColor: { r: 0.000, g: 0.150, b: 0.300 }, bottomColor: { r: 0.000, g: 0.050, b: 0.120 }, glowAColor: { r: 0.000, g: 0.400, b: 0.600 }, glowBColor: { r: 0.000, g: 0.250, b: 0.500 }, centerColor: { r: 0.020, g: 0.050, b: 0.100 }, glowAX: -0.60, glowAY: 0.40, glowASpread: 2.0, glowBX: 0.70, glowBY: -0.40, glowBSpread: 2.5, centerWidth: 0.60, centerHeight: 1.20, centerSoftness: 1.50, gamma: 0.95 },
+    sunset: { topColor: { r: 0.4, g: 0.15, b: 0.1 }, bottomColor: { r: 0.1, g: 0.03, b: 0.08 }, glowAColor: { r: 0.9, g: 0.4, b: 0.15 }, glowBColor: { r: 0.6, g: 0.15, b: 0.4 }, centerColor: { r: 0.15, g: 0.05, b: 0.08 }, glowAX: -0.5, glowAY: 0.6, glowASpread: 1.8, glowBX: 0.6, glowBY: -0.6, glowBSpread: 2.2, centerWidth: 0.8, centerHeight: 1.0, centerSoftness: 1.2, gamma: 0.88 },
+    forest: { topColor: { r: 0.05, g: 0.15, b: 0.08 }, bottomColor: { r: 0.02, g: 0.05, b: 0.03 }, glowAColor: { r: 0.1, g: 0.4, b: 0.15 }, glowBColor: { r: 0.25, g: 0.5, b: 0.2 }, centerColor: { r: 0.03, g: 0.06, b: 0.03 }, glowAX: -0.8, glowAY: 0.3, glowASpread: 2.2, glowBX: 0.5, glowBY: -0.7, glowBSpread: 1.8, centerWidth: 0.9, centerHeight: 0.9, centerSoftness: 1.1, gamma: 0.9 },
+    purple: { topColor: { r: 0.15, g: 0.05, b: 0.25 }, bottomColor: { r: 0.05, g: 0.02, b: 0.1 }, glowAColor: { r: 0.5, g: 0.2, b: 0.7 }, glowBColor: { r: 0.3, g: 0.15, b: 0.6 }, centerColor: { r: 0.08, g: 0.04, b: 0.12 }, glowAX: -0.4, glowAY: 0.7, glowASpread: 1.6, glowBX: 0.4, glowBY: -0.3, glowBSpread: 2.0, centerWidth: 0.75, centerHeight: 1.05, centerSoftness: 1.3, gamma: 0.85 },
+    neon: { topColor: { r: 0.02, g: 0.02, b: 0.08 }, bottomColor: { r: 0.00, g: 0.00, b: 0.02 }, glowAColor: { r: 0.0, g: 0.8, b: 1.0 }, glowBColor: { r: 1.0, g: 0.0, b: 0.8 }, centerColor: { r: 0.05, g: 0.02, b: 0.1 }, glowAX: -0.5, glowAY: 0.5, glowASpread: 1.5, glowBX: 0.5, glowBY: -0.5, glowBSpread: 1.5, centerWidth: 0.5, centerHeight: 1.5, centerSoftness: 1.8, gamma: 0.8 }
+};
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? { r: parseInt(result[1],16)/255, g: parseInt(result[2],16)/255, b: parseInt(result[3],16)/255 } : null;
+}
+
+function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(x => { const h = Math.round(x*255).toString(16); return h.length===1?'0'+h:h; }).join('');
+}
+
+function vec3Str(color) { return 'vec3(' + color.r.toFixed(3) + ', ' + color.g.toFixed(3) + ', ' + color.b.toFixed(3) + ')'; }
+
+function initGL() {
+    const canvas = document.getElementById('previewCanvas');
+    const dpr = Math.min(window.devicePixelRatio, 2);
+    canvas.width = canvas.offsetWidth * dpr;
+    canvas.height = canvas.offsetHeight * dpr;
+
+    gl = canvas.getContext('webgl');
+    if (!gl) { alert('WebGL not supported!'); return; }
+
+    const vsSource = 'attribute vec2 aPosition; varying vec2 vUv; void main() { vUv = aPosition * 0.5 + 0.5; gl_Position = vec4(aPosition, 0.0, 1.0); }';
+    const fsSource = 'precision highp float; uniform vec2 uResolution; uniform float uTime; uniform vec3 uTopColor; uniform vec3 uBottomColor; uniform vec3 uGlowAColor; uniform vec3 uGlowBColor; uniform vec3 uCenterColor; uniform vec2 uGlowAPos; uniform float uGlowASpread; uniform vec2 uGlowBPos; uniform float uGlowBSpread; uniform vec2 uCenterSize; uniform float uCenterSoftness; uniform float uGamma; varying vec2 vUv; void main() { vec2 uv = vUv; vec2 p = uv * 2.0 - 1.0; p.x *= uResolution.x / uResolution.y; vec3 color = mix(uBottomColor, uTopColor, uv.y); float rotA = uTime * 0.12; float rotB = uTime * 0.15; vec2 orbitA = vec2(cos(rotA) * 0.15, sin(rotA) * 0.12); vec2 orbitB = vec2(-cos(rotB) * 0.18, sin(rotB) * 0.14); vec2 posA = uGlowAPos + orbitA + vec2(sin(uTime * 0.35) * 0.08 + sin(uTime * 0.12) * 0.05, cos(uTime * 0.28) * 0.06 + cos(uTime * 0.18) * 0.04); vec2 posB = uGlowBPos + orbitB + vec2(cos(uTime * 0.32) * 0.07 + cos(uTime * 0.10) * 0.05, sin(uTime * 0.40) * 0.09 + sin(uTime * 0.14) * 0.04); float flickerA = 0.88 + sin(uTime * 1.2) * 0.12 + sin(uTime * 0.4) * 0.08 + sin(uTime * 2.5) * 0.04; float flickerB = 0.85 + cos(uTime * 1.0) * 0.15 + cos(uTime * 0.35) * 0.09 + cos(uTime * 2.2) * 0.05; float glowA = exp(-length(p - posA) * uGlowASpread) * flickerA; float glowB = exp(-length(p - posB) * uGlowBSpread) * flickerB; float centerShade = smoothstep(uCenterSoftness, 0.15, length(p * uCenterSize)); color += uGlowAColor * glowA; color += uGlowBColor * glowB; color += uCenterColor * centerShade; gl_FragColor = vec4(pow(color, vec3(uGamma)), 1.0); }';
+
+    function compileShader(type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(shader)); return null; }
+        return shader;
+    }
+
+    const vs = compileShader(gl.VERTEX_SHADER, vsSource);
+    const fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
+
+    program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+
+    positionLoc = gl.getAttribLocation(program, 'aPosition');
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+    uniforms = {
+        resolution: gl.getUniformLocation(program, 'uResolution'),
+        time: gl.getUniformLocation(program, 'uTime'),
+        topColor: gl.getUniformLocation(program, 'uTopColor'),
+        bottomColor: gl.getUniformLocation(program, 'uBottomColor'),
+        glowAColor: gl.getUniformLocation(program, 'uGlowAColor'),
+        glowBColor: gl.getUniformLocation(program, 'uGlowBColor'),
+        centerColor: gl.getUniformLocation(program, 'uCenterColor'),
+        glowAPos: gl.getUniformLocation(program, 'uGlowAPos'),
+        glowASpread: gl.getUniformLocation(program, 'uGlowASpread'),
+        glowBPos: gl.getUniformLocation(program, 'uGlowBPos'),
+        glowBSpread: gl.getUniformLocation(program, 'uGlowBSpread'),
+        centerSize: gl.getUniformLocation(program, 'uCenterSize'),
+        centerSoftness: gl.getUniformLocation(program, 'uCenterSoftness'),
+        gamma: gl.getUniformLocation(program, 'uGamma')
+    };
+
+    startTime = Date.now();
+
+    render();
+}
+
+function render() {
+    if (!gl || !program) return;
+    const time = (Date.now() - startTime) / 1000.0;
+    gl.useProgram(program);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0,0,0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.uniform2f(uniforms.resolution, gl.canvas.width, gl.canvas.height);
+    gl.uniform1f(uniforms.time, time);
+    gl.uniform3f(uniforms.topColor, state.topColor.r, state.topColor.g, state.topColor.b);
+    gl.uniform3f(uniforms.bottomColor, state.bottomColor.r, state.bottomColor.g, state.bottomColor.b);
+    gl.uniform3f(uniforms.glowAColor, state.glowAColor.r, state.glowAColor.g, state.glowAColor.b);
+    gl.uniform3f(uniforms.glowBColor, state.glowBColor.r, state.glowBColor.g, state.glowBColor.b);
+    gl.uniform3f(uniforms.centerColor, state.centerColor.r, state.centerColor.g, state.centerColor.b);
+    gl.uniform2f(uniforms.glowAPos, state.glowAX, state.glowAY);
+    gl.uniform1f(uniforms.glowASpread, state.glowASpread);
+    gl.uniform2f(uniforms.glowBPos, state.glowBX, state.glowBY);
+    gl.uniform1f(uniforms.glowBSpread, state.glowBSpread);
+    gl.uniform2f(uniforms.centerSize, state.centerWidth, state.centerHeight);
+    gl.uniform1f(uniforms.centerSoftness, state.centerSoftness);
+    gl.uniform1f(uniforms.gamma, state.gamma);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    updateUI();
+    requestAnimationFrame(render);
+}
+
+function updateUI() {
+    document.getElementById('topColor').value = rgbToHex(state.topColor.r, state.topColor.g, state.topColor.b);
+    document.getElementById('bottomColor').value = rgbToHex(state.bottomColor.r, state.bottomColor.g, state.bottomColor.b);
+    document.getElementById('glowAColor').value = rgbToHex(state.glowAColor.r, state.glowAColor.g, state.glowAColor.b);
+    document.getElementById('glowBColor').value = rgbToHex(state.glowBColor.r, state.glowBColor.g, state.glowBColor.b);
+
+    document.getElementById('topColorValue').textContent = vec3Str(state.topColor);
+    document.getElementById('bottomColorValue').textContent = vec3Str(state.bottomColor);
+    document.getElementById('glowAColorValue').textContent = vec3Str(state.glowAColor);
+    document.getElementById('glowBColorValue').textContent = vec3Str(state.glowBColor);
+
+    document.getElementById('topColorHex').textContent = rgbToHex(state.topColor.r, state.topColor.g, state.topColor.b);
+    document.getElementById('bottomColorHex').textContent = rgbToHex(state.bottomColor.r, state.bottomColor.g, state.bottomColor.b);
+    document.getElementById('glowAColorHex').textContent = rgbToHex(state.glowAColor.r, state.glowAColor.g, state.glowAColor.b);
+    document.getElementById('glowBColorHex').textContent = rgbToHex(state.glowBColor.r, state.glowBColor.g, state.glowBColor.b);
+
+    document.getElementById('glowAX').value = state.glowAX;
+    document.getElementById('glowAY').value = state.glowAY;
+    document.getElementById('glowASpread').value = state.glowASpread;
+    document.getElementById('glowBX').value = state.glowBX;
+    document.getElementById('glowBY').value = state.glowBY;
+    document.getElementById('glowBSpread').value = state.glowBSpread;
+
+    document.getElementById('glowAXValue').textContent = state.glowAX.toFixed(2);
+    document.getElementById('glowAYValue').textContent = state.glowAY.toFixed(2);
+    document.getElementById('glowASpreadValue').textContent = state.glowASpread.toFixed(1);
+    document.getElementById('glowBXValue').textContent = state.glowBX.toFixed(2);
+    document.getElementById('glowBYValue').textContent = state.glowBY.toFixed(2);
+    document.getElementById('glowBSpreadValue').textContent = state.glowBSpread.toFixed(1);
+
+    updateCodeBox();
+}
+
+function updateCodeBox() {
+    document.getElementById('codeBox').innerHTML = 
+'const backgroundFragmentSource = `\n' +
+'precision highp float;\n\n' +
+'uniform vec2 uResolution;\n' +
+'uniform float uTime;\n' +
+'varying vec2 vUv;\n\n' +
+'void main() {\n' +
+'  vec2 uv = vUv;\n' +
+'  vec2 p = uv * 2.0 - 1.0;\n' +
+'  p.x *= uResolution.x / uResolution.y;\n\n' +
+'  vec3 top = <span class="hl">' + vec3Str(state.topColor) + '</span>;\n' +
+'  vec3 bottom = <span class="hl">' + vec3Str(state.bottomColor) + '</span>;\n' +
+'  vec3 color = mix(bottom, top, uv.y);\n\n' +
+'  // 更有动感的运动 - 更大幅度 + 旋转轨道 + 多层频率\n' +
+'  float rotA = uTime * 0.12;\n' +
+'  float rotB = uTime * 0.15;\n' +
+'  vec2 orbitA = vec2(cos(rotA) * 0.15, sin(rotA) * 0.12);\n' +
+'  vec2 orbitB = vec2(-cos(rotB) * 0.18, sin(rotB) * 0.14);\n' +
+'  vec2 posA = vec2(<span class="hl">' + state.glowAX.toFixed(2) + ', ' + state.glowAY.toFixed(2) + '</span>) + orbitA + vec2(\n' +
+'    sin(uTime * 0.35) * 0.08 + sin(uTime * 0.12) * 0.05,\n' +
+'    cos(uTime * 0.28) * 0.06 + cos(uTime * 0.18) * 0.04\n' +
+'  );\n' +
+'  vec2 posB = vec2(<span class="hl">' + state.glowBX.toFixed(2) + ', ' + state.glowBY.toFixed(2) + '</span>) + orbitB + vec2(\n' +
+'    cos(uTime * 0.32) * 0.07 + cos(uTime * 0.10) * 0.05,\n' +
+'    sin(uTime * 0.40) * 0.09 + sin(uTime * 0.14) * 0.04\n' +
+'  );\n\n' +
+'  // 更有活力的闪烁 - 更大幅度 + 更多层次\n' +
+'  float flickerA = 0.88 + sin(uTime * 1.2) * 0.12 + sin(uTime * 0.4) * 0.08 + sin(uTime * 2.5) * 0.04;\n' +
+'  float flickerB = 0.85 + cos(uTime * 1.0) * 0.15 + cos(uTime * 0.35) * 0.09 + cos(uTime * 2.2) * 0.05;\n\n' +
+'  float glowA = exp(-length(p - posA) * <span class="hl">' + state.glowASpread.toFixed(1) + '</span>) * flickerA;\n' +
+'  float glowB = exp(-length(p - posB) * <span class="hl">' + state.glowBSpread.toFixed(1) + '</span>) * flickerB;\n' +
+'  float centerShade = smoothstep(<span class="hl">' + state.centerSoftness.toFixed(2) + '</span>, 0.15, length(p * vec2(<span class="hl">' + state.centerWidth.toFixed(2) + ', ' + state.centerHeight.toFixed(2) + '</span>)));\n\n' +
+'  color += <span class="hl">' + vec3Str(state.glowAColor) + '</span> * glowA;\n' +
+'  color += <span class="hl">' + vec3Str(state.glowBColor) + '</span> * glowB;\n' +
+'  color += <span class="hl">' + vec3Str(state.centerColor) + '</span> * centerShade;\n\n' +
+'  gl_FragColor = vec4(pow(color, vec3(<span class="hl">' + state.gamma.toFixed(2) + '</span>)), 1.0);\n' +
+'}\n`;';
+}
+
+function update() {
+    state.topColor = hexToRgb(document.getElementById('topColor').value);
+    state.bottomColor = hexToRgb(document.getElementById('bottomColor').value);
+    state.glowAColor = hexToRgb(document.getElementById('glowAColor').value);
+    state.glowBColor = hexToRgb(document.getElementById('glowBColor').value);
+
+    state.glowAX = parseFloat(document.getElementById('glowAX').value);
+    state.glowAY = parseFloat(document.getElementById('glowAY').value);
+    state.glowASpread = parseFloat(document.getElementById('glowASpread').value);
+    state.glowBX = parseFloat(document.getElementById('glowBX').value);
+    state.glowBY = parseFloat(document.getElementById('glowBY').value);
+    state.glowBSpread = parseFloat(document.getElementById('glowBSpread').value);
+    
+    updateUI();
+}
+
+function applyPreset(name) {
+    Object.assign(state, JSON.parse(JSON.stringify(presets[name])));
+    updateUI();
+}
+
+function resetAll() {
+    applyPreset('default');
+}
+
+function copyFullCode() {
+    const code = 'const backgroundFragmentSource = `\n' +
+'precision highp float;\n\n' +
+'uniform vec2 uResolution;\n' +
+'uniform float uTime;\n' +
+'varying vec2 vUv;\n\n' +
+'void main() {\n' +
+'  vec2 uv = vUv;\n' +
+'  vec2 p = uv * 2.0 - 1.0;\n' +
+'  p.x *= uResolution.x / uResolution.y;\n\n' +
+'  vec3 top = vec3(' + state.topColor.r.toFixed(3) + ', ' + state.topColor.g.toFixed(3) + ', ' + state.topColor.b.toFixed(3) + ');\n' +
+'  vec3 bottom = vec3(' + state.bottomColor.r.toFixed(3) + ', ' + state.bottomColor.g.toFixed(3) + ', ' + state.bottomColor.b.toFixed(3) + ');\n' +
+'  vec3 color = mix(bottom, top, uv.y);\n\n' +
+'  // 更有动感的运动 - 更大幅度 + 旋转轨道 + 多层频率\n' +
+'  float rotA = uTime * 0.12;\n' +
+'  float rotB = uTime * 0.15;\n' +
+'  vec2 orbitA = vec2(cos(rotA) * 0.15, sin(rotA) * 0.12);\n' +
+'  vec2 orbitB = vec2(-cos(rotB) * 0.18, sin(rotB) * 0.14);\n' +
+'  vec2 posA = vec2(' + state.glowAX.toFixed(2) + ', ' + state.glowAY.toFixed(2) + ') + orbitA + vec2(\n' +
+'    sin(uTime * 0.35) * 0.08 + sin(uTime * 0.12) * 0.05,\n' +
+'    cos(uTime * 0.28) * 0.06 + cos(uTime * 0.18) * 0.04\n' +
+'  );\n' +
+'  vec2 posB = vec2(' + state.glowBX.toFixed(2) + ', ' + state.glowBY.toFixed(2) + ') + orbitB + vec2(\n' +
+'    cos(uTime * 0.32) * 0.07 + cos(uTime * 0.10) * 0.05,\n' +
+'    sin(uTime * 0.40) * 0.09 + sin(uTime * 0.14) * 0.04\n' +
+'  );\n\n' +
+'  // 更有活力的闪烁 - 更大幅度 + 更多层次\n' +
+'  float flickerA = 0.88 + sin(uTime * 1.2) * 0.12 + sin(uTime * 0.4) * 0.08 + sin(uTime * 2.5) * 0.04;\n' +
+'  float flickerB = 0.85 + cos(uTime * 1.0) * 0.15 + cos(uTime * 0.35) * 0.09 + cos(uTime * 2.2) * 0.05;\n\n' +
+'  float glowA = exp(-length(p - posA) * ' + state.glowASpread.toFixed(1) + ') * flickerA;\n' +
+'  float glowB = exp(-length(p - posB) * ' + state.glowBSpread.toFixed(1) + ') * flickerB;\n' +
+'  float centerShade = smoothstep(' + state.centerSoftness.toFixed(2) + ', 0.15, length(p * vec2(' + state.centerWidth.toFixed(2) + ', ' + state.centerHeight.toFixed(2) + ')));\n\n' +
+'  color += vec3(' + state.glowAColor.r.toFixed(3) + ', ' + state.glowAColor.g.toFixed(3) + ', ' + state.glowAColor.b.toFixed(3) + ') * glowA;\n' +
+'  color += vec3(' + state.glowBColor.r.toFixed(3) + ', ' + state.glowBColor.g.toFixed(3) + ', ' + state.glowBColor.b.toFixed(3) + ') * glowB;\n' +
+'  color += vec3(' + state.centerColor.r.toFixed(3) + ', ' + state.centerColor.g.toFixed(3) + ', ' + state.centerColor.b.toFixed(3) + ') * centerShade;\n\n' +
+'  gl_FragColor = vec4(pow(color, vec3(' + state.gamma.toFixed(2) + ')), 1.0);\n' +
+'}\n`;';
+
+    navigator.clipboard.writeText(code).then(() => { alert('代码已复制！'); }).catch(() => { 
+        const textarea = document.createElement('textarea'); textarea.value = code; document.body.appendChild(textarea); textarea.select(); 
+        document.execCommand('copy'); document.body.removeChild(textarea); alert('代码已复制！'); 
+    });
+}
+
+window.addEventListener('load', initGL);
+window.addEventListener('resize', initGL);
+</script>
+</body>
+</html>
